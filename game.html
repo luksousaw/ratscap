@@ -87,6 +87,15 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 .sbox .l{font-size:7px;color:rgba(0,255,136,.55);letter-spacing:2px;margin-bottom:3px;}
 #camBtn{position:absolute;bottom:136px;right:14px;background:rgba(0,0,0,.7);border:1px solid rgba(255,220,0,.4);border-radius:8px;padding:8px 14px;color:#FFE000;font-family:'Orbitron',monospace;font-size:9px;cursor:pointer;z-index:100;letter-spacing:1px;transition:.2s;}
 #camBtn:hover,#camBtn:active{background:rgba(255,220,0,.15);}
+
+/* Players online panel */
+#mpPanel{position:absolute;top:70px;left:14px;background:rgba(0,0,0,.72);border:1px solid rgba(255,220,0,.25);border-radius:8px;padding:8px 12px;z-index:100;pointer-events:none;display:none;min-width:130px;}
+#mpPanel .pTitle{font-size:7px;color:rgba(255,220,0,.6);letter-spacing:2px;margin-bottom:6px;}
+.pRow{display:flex;align-items:center;gap:7px;margin:3px 0;font-size:10px;color:rgba(255,255,255,.85);}
+.pDot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pDot.me{background:#FFE000;}
+.pDot.other{background:#ffaa44;}
+.pDot.dead{background:#555;}
 </style>
 </head>
 <body>
@@ -105,6 +114,11 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 <div id="staminaWrap">
   <div id="staminaLabel">STAMINA</div>
   <div id="staminaBar"><div id="staminaFill"></div></div>
+</div>
+
+<div id="mpPanel">
+  <div class="pTitle">JOGADORES</div>
+  <div id="mpPlayerRows"></div>
 </div>
 
 <canvas id="minimap"></canvas>
@@ -1615,6 +1629,7 @@ function mpHandleMsg(msg, myName, roomCode){
     document.getElementById('mpRoomTag').style.display='block';
     document.getElementById('mpRoomCode').textContent=roomCode;
     status.textContent='';
+    mpRefreshPanel();
     // Start game (host or joining)
     if(msg.isHost){
       // Show start screen for host to kick off
@@ -1635,7 +1650,7 @@ function mpHandleMsg(msg, myName, roomCode){
 
   else if(msg.type==='joined'){
     mpAddOther(msg);
-    // Show who joined
+    mpRefreshPanel();
     const s=document.createElement('div');
     s.style.cssText='position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#FFE000;font-size:9px;padding:6px 14px;border-radius:6px;z-index:200;pointer-events:none;letter-spacing:1px;';
     s.textContent='🐭 '+msg.name+' entrou na sala!';
@@ -1658,8 +1673,11 @@ function mpHandleMsg(msg, myName, roomCode){
 
   else if(msg.type==='dead'){
     const p=mpOthers.get(msg.id);
-    if(p&&p.mesh) p.mesh.visible=false;
-    // Show notification
+    if(p){
+      p.dead=true;
+      if(p.mesh) p.mesh.visible=false;
+    }
+    mpRefreshPanel();
     const s=document.createElement('div');
     s.style.cssText='position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(120,0,0,.9);color:#ff9999;font-size:9px;padding:6px 14px;border-radius:6px;z-index:200;pointer-events:none;letter-spacing:1px;';
     s.textContent='🐱 '+(p?.name||'Alguém')+' foi pego!';
@@ -1700,35 +1718,91 @@ function mpHandleMsg(msg, myName, roomCode){
     const p=mpOthers.get(msg.id);
     if(p&&p.mesh&&scene) scene.remove(p.mesh);
     mpOthers.delete(msg.id);
+    mpRefreshPanel();
   }
 }
 
-// Build a simple rat mesh for other players (orange tint to distinguish)
+// ── Player panel refresh ──────────────────────
+function mpRefreshPanel(){
+  const panel=document.getElementById('mpPanel');
+  const rows=document.getElementById('mpPlayerRows');
+  if(!myMpId){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  // Build rows: me first, then others
+  const myName=document.getElementById('mpName')?.value||'Você';
+  let html=`<div class="pRow"><div class="pDot me"></div><span>${myName} <span style="font-size:8px;color:rgba(255,220,0,.5)">(eu)</span></span></div>`;
+  mpOthers.forEach(p=>{
+    const dotCls=p.dead?'dead':'other';
+    const tag=p.dead?'<span style="font-size:8px;color:#666">💀</span>':'';
+    html+=`<div class="pRow"><div class="pDot ${dotCls}"></div><span>${p.name}${tag}</span></div>`;
+  });
+  rows.innerHTML=html;
+}
+
+// Make a canvas texture with the player's name for floating label
+function makeNameTexture(name){
+  const c=document.createElement('canvas'); c.width=256; c.height=64;
+  const ctx=c.getContext('2d');
+  ctx.font='bold 28px Orbitron,monospace';
+  ctx.textAlign='center';
+  // background pill
+  const w=ctx.measureText(name).width+20;
+  ctx.fillStyle='rgba(0,0,0,0.7)';
+  ctx.beginPath();
+  ctx.roundRect(128-w/2,8,w,42,10);
+  ctx.fill();
+  ctx.fillStyle='#ffaa44';
+  ctx.fillText(name,128,38);
+  const tex=new THREE.CanvasTexture(c);
+  return tex;
+}
+
+// Build other player rat mesh — bigger, orange, with floating name
 function mpAddOther(p){
-  if(mpOthers.has(p.id)) return;
+  if(mpOthers.has(p.id)){
+    // already exists, just update
+    const existing=mpOthers.get(p.id);
+    if(existing.mesh&&scene&&!scene.children.includes(existing.mesh)) scene.add(existing.mesh);
+    return;
+  }
   const g=new THREE.Group();
-  const mat=new THREE.MeshStandardMaterial({color:0xffaa44,roughness:.7});
+
+  // Body — bigger than solo rat, orange so easy to spot
+  const mat=new THREE.MeshStandardMaterial({color:0xff8800,roughness:.6,emissive:0x331100,emissiveIntensity:.3});
   const pink=new THREE.MeshStandardMaterial({color:0xff99bb});
-  // body
-  const body=new THREE.Mesh(new THREE.SphereGeometry(.28,10,8),mat);
-  body.scale.set(1,.75,1.3); body.position.y=.28; g.add(body);
-  // head
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.18,8,7),mat);
-  head.position.set(0,.38,.3); g.add(head);
-  // ears
-  for(const x of[-.1,.1]){
-    const ear=new THREE.Mesh(new THREE.SphereGeometry(.07,6,6),pink);
-    ear.scale.set(1,.6,.4); ear.position.set(x,.54,.28); g.add(ear);
+  const dark=new THREE.MeshStandardMaterial({color:0x111111});
+
+  const body=new THREE.Mesh(new THREE.SphereGeometry(.32,12,10),mat);
+  body.scale.set(1,.75,1.35); body.position.y=.32; g.add(body);
+
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.20,10,9),mat);
+  head.position.set(0,.44,.34); g.add(head);
+
+  for(const x of[-.12,.12]){
+    const ear=new THREE.Mesh(new THREE.SphereGeometry(.08,7,7),pink);
+    ear.scale.set(1,.65,.4); ear.position.set(x,.60,.30); g.add(ear);
   }
-  // eyes
-  const eyeM=new THREE.MeshStandardMaterial({color:0x111111});
-  for(const x of[-.07,.07]){
-    const eye=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6),eyeM);
-    eye.position.set(x,.42,.45); g.add(eye);
+  for(const x of[-.08,.08]){
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6),dark);
+    eye.position.set(x,.46,.50); g.add(eye);
   }
+
+  // Small point light so they glow orange in dark levels
+  const pl=new THREE.PointLight(0xff8800,.8,2.5);
+  pl.position.set(0,.5,0); g.add(pl);
+
+  // Floating name label as sprite
+  const tex=makeNameTexture(p.name||'Rato');
+  const spriteMat=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false});
+  const sprite=new THREE.Sprite(spriteMat);
+  sprite.scale.set(1.4,.35,1);
+  sprite.position.set(0,1.1,0);
+  g.add(sprite);
+
   g.position.set(p.x||1, 0, p.z||1);
   if(scene) scene.add(g);
-  mpOthers.set(p.id, {mesh:g, tx:p.x||1, tz:p.z||1, ty:0, name:p.name||'Rato'});
+  mpOthers.set(p.id,{mesh:g,tx:p.x||1,tz:p.z||1,ty:0,name:p.name||'Rato',dead:false});
+  mpRefreshPanel();
 }
 
 // Re-add other player meshes after scene clear
@@ -1739,7 +1813,7 @@ function mpRebuildMeshes(){
   });
 }
 
-// Send my position + cat sync (called in loop)
+// Send my position + cat sync + interpolate others
 function mpTick(dt){
   if(!ws||ws.readyState!==1) return;
   mpMoveT+=dt;
@@ -1749,13 +1823,17 @@ function mpTick(dt){
   if(mpIsHost&&catGroup&&catActive){
     ws.send(JSON.stringify({type:'cat',x:catGroup.position.x,z:catGroup.position.z}));
   }
-  // Interpolate other players
+  // Smooth interpolate + bob other players
   mpOthers.forEach(p=>{
-    if(!p.mesh) return;
-    p.mesh.position.x+=(p.tx-p.mesh.position.x)*0.22;
-    p.mesh.position.z+=(p.tz-p.mesh.position.z)*0.22;
+    if(!p.mesh||!p.mesh.visible) return;
+    const px=p.mesh.position.x, pz=p.mesh.position.z;
+    const dx=p.tx-px, dz=p.tz-pz;
+    const moving=Math.sqrt(dx*dx+dz*dz)>0.01;
+    p.mesh.position.x+=dx*0.22;
+    p.mesh.position.z+=dz*0.22;
     p.mesh.rotation.y=p.ty;
-    p.mesh.position.y=0;
+    // Bob when moving
+    p.mesh.position.y=moving?Math.abs(Math.sin(frameNow*.01))*.05:0;
   });
 }
 
