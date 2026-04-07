@@ -31,6 +31,17 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 #staminaLabel{font-size:7px;color:rgba(255,200,0,.5);letter-spacing:2px;}
 #staminaBar{width:130px;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;border:1px solid rgba(255,220,0,.15);}
 #staminaFill{height:100%;background:#FFE000;border-radius:3px;width:100%;transition:width .1s,background .3s;}
+/* HP bar */
+#hpWrap{position:absolute;bottom:178px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:100;display:flex;flex-direction:column;align-items:center;gap:3px;}
+#hpLabel{font-size:7px;color:rgba(255,80,80,.6);letter-spacing:2px;}
+#hpBar{width:130px;height:7px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;border:1px solid rgba(255,60,60,.25);}
+#hpFill{height:100%;background:#ff3333;border-radius:3px;width:100%;transition:width .15s,background .3s;}
+/* Attack button (mobile) */
+#attackBtn{position:absolute;bottom:130px;right:20px;width:64px;height:64px;background:rgba(255,50,50,.18);border:2px solid rgba(255,50,50,.45);border-radius:50%;z-index:120;display:none;align-items:center;justify-content:center;font-size:10px;color:rgba(255,120,120,.85);font-family:'Orbitron',monospace;touch-action:none;letter-spacing:1px;}
+#attackBtn.ready{background:rgba(255,50,50,.38);border-color:rgba(255,80,80,.9);}
+#attackBtn.cooldown{opacity:.4;}
+/* Hit flash */
+#hitFlash{position:absolute;inset:0;pointer-events:none;z-index:91;background:rgba(255,0,0,0);display:none;}
 
 #catHud{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(130,0,0,.93);border:1px solid #ff3333;border-radius:6px;padding:5px 12px;font-size:10px;color:#ff9999;pointer-events:none;z-index:101;white-space:nowrap;}
 
@@ -84,6 +95,7 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 .nlabel{font-family:'Press Start 2P',monospace;font-size:8px;color:rgba(255,220,0,.42);letter-spacing:4px;margin-bottom:8px;}
 .stats{display:flex;gap:12px;margin:14px 0;}
 .sbox{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.18);border-radius:9px;padding:10px 14px;text-align:center;}
+@keyframes dmgPop{0%{opacity:1;transform:translateX(-50%) translateY(0);}100%{opacity:0;transform:translateX(-50%) translateY(-40px);}}
 .sbox .l{font-size:7px;color:rgba(0,255,136,.55);letter-spacing:2px;margin-bottom:3px;}
 #camBtn{position:absolute;bottom:136px;right:14px;background:rgba(0,0,0,.7);border:1px solid rgba(255,220,0,.4);border-radius:8px;padding:8px 14px;color:#FFE000;font-family:'Orbitron',monospace;font-size:9px;cursor:pointer;z-index:100;letter-spacing:1px;transition:.2s;}
 #camBtn:hover,#camBtn:active{background:rgba(255,220,0,.15);}
@@ -111,10 +123,19 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
   <div class="hb"><div class="hl">Gato</div><div class="hv" id="catM">?m</div></div>
 </div></div>
 
+<div id="hitFlash"></div>
+
+<div id="hpWrap">
+  <div id="hpLabel">❤ VIDA</div>
+  <div id="hpBar"><div id="hpFill"></div></div>
+</div>
+
 <div id="staminaWrap">
   <div id="staminaLabel">STAMINA</div>
   <div id="staminaBar"><div id="staminaFill"></div></div>
 </div>
+
+<div id="attackBtn" onclick="tryAttack()">⚔<br>ATK</div>
 
 <div id="mpPanel">
   <div class="pTitle">JOGADORES</div>
@@ -135,6 +156,7 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
   <div class="cr"><span class="k">Arrastar mouse</span> Olhar</div>
   <div class="cr"><span class="k">Q E</span> Girar</div>
   <div class="cr"><span class="k">Shift</span> Correr</div>
+  <div class="cr"><span class="k">Espaço / F</span> Atacar</div>
   <div class="cr"><span class="k">V</span> Câmera POV / 3ª pessoa</div>
   <div class="cr" style="color:rgba(255,220,0,.7);">🧀 Colete o queijo!</div>
   <div class="cr" style="color:rgba(0,255,136,.7);">🟢 Chegue ao bloco verde!</div>
@@ -500,6 +522,14 @@ let t0=0, totalSec=0, totalCheeseAll=0, timerID=null;
 let frameNow=0, lastMs=0;
 
 let bobPhase=0, bobMoving=false;
+
+// ── Health & Combat ──────────────────────────
+const MAX_HP=100;
+let myHp=MAX_HP;
+let attackCooldown=0;      // seconds remaining until can attack again
+const ATTACK_RANGE=1.6;    // how close to hit (in maze units)
+const ATTACK_DAMAGE=34;    // one-third HP per hit
+const ATTACK_COOLDOWN=1.2; // seconds between attacks
 let stamina=1;
 const DRAIN=.45, REGEN=.22;
 let shakeStr=0, stepT=0;
@@ -929,7 +959,7 @@ document.addEventListener('mouseup',()=>mouseDown=false);
 document.addEventListener('mousemove',e=>{if(!mouseDown||paused||dead||gameWon) return;P.yaw-=(e.clientX-lastMX)*.003;P.pitch=Math.max(-1.25,Math.min(1.25,P.pitch-(e.clientY-lastMY)*.003));lastMX=e.clientX;lastMY=e.clientY;});
 
 const K={};
-document.addEventListener('keydown',e=>{ K[e.key]=true; if(e.key==='v'||e.key==='V') toggleCam(); });
+document.addEventListener('keydown',e=>{ K[e.key]=true; if(e.key==='v'||e.key==='V') toggleCam(); if(e.key===' '||e.key==='f'||e.key==='F') tryAttack(); });
 document.addEventListener('keyup',  e=>K[e.key]=false);
 
 function setupTouch(){
@@ -937,6 +967,10 @@ function setupTouch(){
   document.getElementById('ctrl').style.display=mob?'none':'block';
   ['joyZone','lookZone','sprintBtn'].forEach(id=>document.getElementById(id).style.display=mob?'block':'none');
   document.getElementById('sprintBtn').style.display=mob?'flex':'none';
+  // Attack button shown on mobile only when multiplayer is connected
+  const atkBtn=document.getElementById('attackBtn');
+  if(mob&&mpConnected) atkBtn.style.display='flex';
+  else atkBtn.style.display='none';
 
   const jz=document.getElementById('joyZone');
   const lz=document.getElementById('lookZone');
@@ -1443,7 +1477,7 @@ function movePlayer(dt){
 
   if(moving){
     const len=Math.sqrt(mx*mx+mz*mz);mx/=len;mz/=len;
-    let spd=.082;if(sprinting) spd*=1.6;
+    let spd=.065;if(sprinting) spd*=1.5;
     const nx=P.x+mx*spd,nz=P.z+mz*spd;
     if(!pWall(nx,P.z)) P.x=nx;
     if(!pWall(P.x,nz)) P.z=nz;
@@ -1464,6 +1498,7 @@ function movePlayer(dt){
     }
   });
 
+  if(attackCooldown>0){ attackCooldown=Math.max(0,attackCooldown-dt); updateAttackBtn(); }
   checkGoal();
 }
 
@@ -1473,6 +1508,67 @@ function pWall(x,z){
   return false;
 }
 function checkGoal(){if(!goalObj) return;if(Math.hypot(P.x-goalObj.x,P.z-goalObj.z)<.75) winLevel();}
+
+// ── HP bar ───────────────────────────────────
+function updateHpBar(){
+  const pct=Math.max(0,myHp/MAX_HP)*100;
+  const fill=document.getElementById('hpFill');
+  fill.style.width=pct+'%';
+  fill.style.background=pct>60?'#ff3333':pct>30?'#ff8800':'#ff0000';
+}
+
+// ── Attack ───────────────────────────────────
+function tryAttack(){
+  if(dead||gameWon||paused||!mpConnected) return;
+  if(attackCooldown>0) return;
+  // Check every other player within range
+  let hit=false;
+  mpOthers.forEach((p,id)=>{
+    if(p.dead) return;
+    const dist=Math.hypot(P.x-p.tx,P.z-p.tz);
+    if(dist<ATTACK_RANGE){
+      // Send hit to server
+      ws.send(JSON.stringify({type:'hit',targetId:id,dmg:ATTACK_DAMAGE}));
+      hit=true;
+    }
+  });
+  if(hit){
+    attackCooldown=ATTACK_COOLDOWN;
+    // Swing animation: brief camera tilt
+    beep(220,'square',.1,.05);
+    beep(150,'square',.08,.05,.06);
+  } else {
+    attackCooldown=ATTACK_COOLDOWN*0.4; // short cooldown on miss
+    beep(180,'square',.06,.04);
+  }
+  updateAttackBtn();
+}
+
+// ── Receive hit from another player ──────────
+function receiveHit(dmg,fromName){
+  if(dead||gameWon) return;
+  myHp=Math.max(0,myHp-dmg);
+  updateHpBar();
+  // Flash red
+  const hf=document.getElementById('hitFlash');
+  hf.style.display='block'; hf.style.background='rgba(255,0,0,0.55)';
+  setTimeout(()=>{hf.style.background='rgba(255,0,0,0)';setTimeout(()=>hf.style.display='none',250);},80);
+  // Sound
+  beep(120,'sawtooth',.18,.12);
+  // Show damage indicator
+  const s=document.createElement('div');
+  s.style.cssText='position:absolute;top:40%;left:50%;transform:translateX(-50%);color:#ff4444;font-family:"Orbitron",monospace;font-size:20px;font-weight:900;pointer-events:none;z-index:200;animation:dmgPop .5s ease-out forwards;';
+  s.textContent='-'+dmg+'❤';
+  document.body.appendChild(s);
+  setTimeout(()=>s.remove(),500);
+  if(myHp<=0) doKill();
+}
+
+function updateAttackBtn(){
+  const btn=document.getElementById('attackBtn');
+  if(attackCooldown>0){ btn.classList.add('cooldown'); btn.classList.remove('ready'); }
+  else { btn.classList.remove('cooldown'); btn.classList.add('ready'); }
+}
 
 // ═══════════════════════════════════════════
 // MINIMAP
@@ -1540,8 +1636,10 @@ function fullReset(){document.getElementById('oWin').style.display='none';lvIdx=
 function beginLevel(){
   stopDrone();
   loadLevel(lvIdx);
-  mpRebuildMeshes();   // re-add other players after scene wipe
+  mpRebuildMeshes();
   gameWon=false;dead=false;paused=false;
+  myHp=MAX_HP; attackCooldown=0;
+  updateHpBar(); updateAttackBtn();
   camMode='pov';
   document.getElementById('xhair').style.display='block';
   document.getElementById('camBtn').textContent='📷 [V] CÂMERA';
@@ -1628,6 +1726,8 @@ function mpHandleMsg(msg, myName, roomCode){
     // Show room tag in HUD
     document.getElementById('mpRoomTag').style.display='block';
     document.getElementById('mpRoomCode').textContent=roomCode;
+    // Show attack button (desktop: always; mobile: after this)
+    document.getElementById('attackBtn').style.display='flex';
     status.textContent='';
     mpRefreshPanel();
     // Start game (host or joining)
@@ -1669,6 +1769,24 @@ function mpHandleMsg(msg, myName, roomCode){
       catGroup.position.x=msg.x;
       catGroup.position.z=msg.z;
     }
+  }
+
+  else if(msg.type==='hpupdate'){
+    const p=mpOthers.get(msg.id);
+    if(p){
+      p.hp=msg.hp;
+      // Regenerate HP bar texture
+      if(p.hpMat){
+        if(p.hpMat.map) p.hpMat.map.dispose();
+        p.hpMat.map=makeHpTexture(Math.max(0,msg.hp)/MAX_HP);
+        p.hpMat.map.needsUpdate=true;
+      }
+    }
+  }
+
+  else if(msg.type==='hit'){
+    // Server forwarded a hit targeted at us
+    receiveHit(msg.dmg, msg.fromName||'Alguém');
   }
 
   else if(msg.type==='dead'){
@@ -1739,6 +1857,20 @@ function mpRefreshPanel(){
   rows.innerHTML=html;
 }
 
+// Make HP bar canvas texture
+function makeHpTexture(pct){
+  const c=document.createElement('canvas'); c.width=200; c.height=28;
+  const ctx=c.getContext('2d');
+  // Background
+  ctx.fillStyle='rgba(0,0,0,0.7)';
+  ctx.beginPath(); ctx.roundRect(4,4,192,20,6); ctx.fill();
+  // HP fill
+  const col=pct>0.6?'#33ff66':pct>0.3?'#ffaa00':'#ff3333';
+  ctx.fillStyle=col;
+  ctx.beginPath(); ctx.roundRect(6,6,Math.max(0,188*pct),16,4); ctx.fill();
+  return new THREE.CanvasTexture(c);
+}
+
 // Make a canvas texture with the player's name for floating label
 function makeNameTexture(name){
   const c=document.createElement('canvas'); c.width=256; c.height=64;
@@ -1799,9 +1931,17 @@ function mpAddOther(p){
   sprite.position.set(0,1.1,0);
   g.add(sprite);
 
+  // HP bar sprite above name
+  const hpTex=makeHpTexture(1.0);
+  const hpMat=new THREE.SpriteMaterial({map:hpTex,transparent:true,depthTest:false});
+  const hpSprite=new THREE.Sprite(hpMat);
+  hpSprite.scale.set(1.2,.2,1);
+  hpSprite.position.set(0,1.5,0);
+  g.add(hpSprite);
+
   g.position.set(p.x||1, 0, p.z||1);
   if(scene) scene.add(g);
-  mpOthers.set(p.id,{mesh:g,tx:p.x||1,tz:p.z||1,ty:0,name:p.name||'Rato',dead:false});
+  mpOthers.set(p.id,{mesh:g,hpSprite,hpMat,hp:MAX_HP,tx:p.x||1,tz:p.z||1,ty:0,name:p.name||'Rato',dead:false});
   mpRefreshPanel();
 }
 
