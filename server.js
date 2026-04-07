@@ -87,6 +87,24 @@ wss.on('connection', ws => {
         }
       }
 
+      // ── HIT (player attacks player) ───────────
+      else if (msg.type === 'hit' && myRoom) {
+        const attacker = rooms.get(myRoom)?.get(id);
+        const target   = rooms.get(myRoom)?.get(msg.targetId);
+        if (attacker && target && !target.dead) {
+          const dmg = Math.min(50, Math.max(1, msg.dmg || 34));
+          // Track HP server-side
+          target.hp = (target.hp ?? 100) - dmg;
+          // Send hit only to target
+          send(target.ws, { type: 'hit', dmg, fromName: attacker.name });
+          // Broadcast HP update to everyone in room (so they see the bar)
+          broadcastRoom(myRoom, {
+            type: 'hpupdate', id: msg.targetId, hp: Math.max(0, target.hp)
+          });
+          console.log(`[${myRoom}] ⚔ ${attacker.name} → ${target.name} (-${dmg}) HP:${target.hp}`);
+        }
+      }
+
       // ── DEAD ──────────────────────────────────
       else if (msg.type === 'dead' && myRoom) {
         const p = rooms.get(myRoom)?.get(id);
@@ -105,8 +123,8 @@ wss.on('connection', ws => {
       // ── LEVEL CHANGE (host only) ──────────────
       else if (msg.type === 'level' && myRoom) {
         if (rooms.get(myRoom)?.get(id)?.host) {
-          // Reset dead status for all players in room
-          rooms.get(myRoom).forEach(p => { p.dead = false; });
+          // Reset dead + HP status for all players in room
+          rooms.get(myRoom).forEach(p => { p.dead = false; p.hp = 100; });
           broadcastRoom(myRoom, { type: 'level', lvl: msg.lvl }, id);
           console.log(`[${myRoom}] Fase ${msg.lvl + 1}`);
         }
