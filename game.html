@@ -27,19 +27,19 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 /* cheese counter */
 #cheeseHud{background:rgba(0,0,0,.7);border:1px solid rgba(255,200,0,.3);border-radius:8px;padding:6px 11px;}
 
-#staminaWrap{position:absolute;bottom:158px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:100;display:flex;flex-direction:column;align-items:center;gap:3px;}
+#staminaWrap{display:none !important;}
 #staminaLabel{font-size:7px;color:rgba(255,200,0,.5);letter-spacing:2px;}
 #staminaBar{width:130px;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;border:1px solid rgba(255,220,0,.15);}
 #staminaFill{height:100%;background:#FFE000;border-radius:3px;width:100%;transition:width .1s,background .3s;}
 /* HP bar */
-#hpWrap{position:absolute;bottom:178px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:100;display:flex;flex-direction:column;align-items:center;gap:3px;}
-#hpLabel{font-size:7px;color:rgba(255,80,80,.6);letter-spacing:2px;}
-#hpBar{width:130px;height:7px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;border:1px solid rgba(255,60,60,.25);}
-#hpFill{height:100%;background:#ff3333;border-radius:3px;width:100%;transition:width .15s,background .3s;}
+#hpWrap{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:100;display:flex;flex-direction:column;align-items:center;gap:4px;}
+#hpLabel{font-size:7px;color:rgba(255,80,80,.65);letter-spacing:2px;}
+#hpBar{width:160px;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;border:1px solid rgba(255,60,60,.3);}
+#hpFill{height:100%;background:#ff3333;border-radius:4px;width:100%;transition:width .15s,background .3s;}
 /* Attack button (mobile) */
-#attackBtn{position:absolute;bottom:130px;right:20px;width:64px;height:64px;background:rgba(255,50,50,.18);border:2px solid rgba(255,50,50,.45);border-radius:50%;z-index:120;display:none;align-items:center;justify-content:center;font-size:10px;color:rgba(255,120,120,.85);font-family:'Orbitron',monospace;touch-action:none;letter-spacing:1px;}
+#attackBtn{position:absolute;bottom:60px;right:20px;width:68px;height:68px;background:rgba(255,50,50,.18);border:2px solid rgba(255,50,50,.45);border-radius:50%;z-index:120;display:none;align-items:center;justify-content:center;font-size:22px;color:rgba(255,120,120,.85);touch-action:none;}
 #attackBtn.ready{background:rgba(255,50,50,.38);border-color:rgba(255,80,80,.9);}
-#attackBtn.cooldown{opacity:.4;}
+#attackBtn.cooldown{opacity:.35;}
 /* Hit flash */
 #hitFlash{position:absolute;inset:0;pointer-events:none;z-index:91;background:rgba(255,0,0,0);display:none;}
 
@@ -55,7 +55,7 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 #joyBase{position:absolute;inset:0;background:rgba(255,220,0,.08);border:2px solid rgba(255,220,0,.22);border-radius:50%;}
 #joyThumb{position:absolute;width:52px;height:52px;background:rgba(255,220,0,.32);border:2px solid rgba(255,220,0,.6);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);}
 #lookZone{position:absolute;bottom:20px;right:155px;left:170px;top:0;z-index:110;touch-action:none;}
-#sprintBtn{position:absolute;bottom:48px;right:20px;width:72px;height:72px;background:rgba(255,220,0,.12);border:2px solid rgba(255,220,0,.3);border-radius:50%;z-index:120;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,220,0,.65);font-family:'Orbitron',monospace;touch-action:none;}
+#sprintBtn{display:none !important;}
 #sprintBtn.active{background:rgba(255,220,0,.32);border-color:rgba(255,220,0,.8);}
 
 #ctrl{position:absolute;bottom:14px;left:14px;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:9px 12px;pointer-events:none;z-index:100;}
@@ -135,7 +135,7 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
   <div id="staminaBar"><div id="staminaFill"></div></div>
 </div>
 
-<div id="attackBtn" onclick="tryAttack()">⚔<br>ATK</div>
+<div id="attackBtn" onclick="tryAttack()">🐾</div>
 
 <div id="mpPanel">
   <div class="pTitle">JOGADORES</div>
@@ -153,10 +153,9 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 <!-- Desktop hint -->
 <div id="ctrl">
   <div class="cr"><span class="k">W A S D</span> Mover</div>
-  <div class="cr"><span class="k">Arrastar mouse</span> Olhar</div>
-  <div class="cr"><span class="k">Q E</span> Girar</div>
-  <div class="cr"><span class="k">Shift</span> Correr</div>
-  <div class="cr"><span class="k">Espaço / F</span> Atacar</div>
+  <div class="cr"><span class="k">Mouse drag</span> Olhar</div>
+  <div class="cr"><span class="k">Q E</span> Girar câmera</div>
+  <div class="cr"><span class="k">Espaço / F</span> Atacar (MP)</div>
   <div class="cr"><span class="k">V</span> Câmera POV / 3ª pessoa</div>
   <div class="cr" style="color:rgba(255,220,0,.7);">🧀 Colete o queijo!</div>
   <div class="cr" style="color:rgba(0,255,136,.7);">🟢 Chegue ao bloco verde!</div>
@@ -166,18 +165,21 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 
 <!-- Lobby multiplayer -->
 <div class="ov" id="oLobby">
-  <div class="emoji" style="font-size:52px;margin-bottom:12px;">🐭</div>
+  <div class="emoji" style="font-size:56px;margin-bottom:10px;">🐭</div>
   <div class="gtitle" style="font-size:22px;">TINY ESCAPE</div>
-  <div class="sub" style="margin-bottom:20px;">MULTIPLAYER</div>
+  <div class="sub" style="margin-bottom:22px;">SIZE OF A RAT</div>
   <div class="mp-box">
-    <input class="mp-input" id="mpName" placeholder="Seu nome (ex: Ratão)" maxlength="12">
-    <input class="mp-input" id="mpRoom" placeholder="Código da sala (ex: RATO)" maxlength="6" style="text-transform:uppercase">
-    <button class="btn" onclick="mpJoin()">🌐 ENTRAR NA SALA</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input class="mp-input" id="mpName" placeholder="Seu nome..." maxlength="12" style="flex:1;">
+      <button onclick="randomName()" style="background:rgba(255,220,0,.12);border:1px solid rgba(255,220,0,.3);border-radius:8px;padding:0 12px;height:42px;cursor:pointer;font-size:16px;" title="Nome aleatório">🎲</button>
+    </div>
+    <div style="font-size:8px;color:rgba(255,255,255,.3);letter-spacing:1px;text-align:center;margin:-4px 0 2px;">ESCOLHA UM SERVIDOR</div>
+    <button class="btn" onclick="mpJoinServer('SALA1')" id="btnS1" style="font-size:12px;">🌐 SERVIDOR 1 — SALA1</button>
+    <button class="btn" onclick="mpJoinServer('SALA2')" id="btnS2" style="font-size:12px;background:rgba(100,200,255,.85);">🌐 SERVIDOR 2 — SALA2</button>
     <div class="mp-sep"><span>OU</span></div>
     <button class="btn gray" onclick="soloPlay()">🎮 JOGAR SOZINHO</button>
   </div>
   <div id="mpStatus"></div>
-  <p style="margin-top:14px;font-size:8px;color:rgba(255,255,255,.18);letter-spacing:1px;text-align:center;">Mesmo código de sala = mesma partida<br>Funciona na mesma rede Wi-Fi</p>
 </div>
 
 <div class="ov" id="oStart" style="display:none;">
@@ -501,7 +503,7 @@ const LEVELS = [
 // GLOBALS
 // ═══════════════════════════════════════════
 let scene, camera, renderer;
-const P = {x:1, z:1, yaw:0, pitch:0};
+const P = {x:1, z:1, yaw:0, pitch:0, bodyYaw:0};
 const EYE = 0.5;
 
 let wallList=[], goalObj=null;
@@ -1100,7 +1102,7 @@ function loadLevel(idx){
     if(cell===1){
       const w=new THREE.Mesh(wG,wM);w.position.set(c,1,r);w.castShadow=true;w.receiveShadow=true;scene.add(w);wallList.push({x:c,z:r});
     }else if(cell===2){
-      P.x=c;P.z=r;P.yaw=0;P.pitch=0;startX=c;startZ=r;
+      P.x=c;P.z=r;P.yaw=0;P.pitch=0;P.bodyYaw=0;startX=c;startZ=r;
     }else if(cell===3){
       const gm=new THREE.Mesh(new THREE.BoxGeometry(.88,.06,.88),new THREE.MeshStandardMaterial({color:0x00ff88,emissive:0x00cc66,emissiveIntensity:1.3}));
       gm.position.set(c,.03,r);scene.add(gm);
@@ -1433,7 +1435,7 @@ function applyCamera(){
       ratMesh.position.set(P.x, bobMoving?Math.abs(Math.sin(bobPhase*6))*.04:0, P.z);
       // Rat local +Z → world: (sin(θ), cos(θ)). We want it facing (-sin(yaw),-cos(yaw)).
       // sin(θ)=-sin(yaw) and cos(θ)=-cos(yaw) → θ = yaw + π
-      ratMesh.rotation.y = P.yaw + Math.PI;
+      ratMesh.rotation.y = P.bodyYaw;
     }
   }
 }
@@ -1444,47 +1446,47 @@ function applyCamera(){
 function movePlayer(dt){
   if(paused||dead||gameWon) return;
 
-  const ts=2.1*dt;
-  if(K['ArrowLeft']||K['q']||K['Q']) P.yaw+=ts;
+  // Q/E or arrow keys rotate camera (look direction only)
+  const ts=2.0*dt;
+  if(K['ArrowLeft']||K['q']||K['Q'])  P.yaw+=ts;
   if(K['ArrowRight']||K['e']||K['E']) P.yaw-=ts;
 
-  // Three.js camera rotation.order='YXZ', default look = -Z.
-  // Rotating by yaw around Y: world forward = (-sin(yaw), 0, -cos(yaw))
-  // World right = (cos(yaw), 0, -sin(yaw))
-  const fwdX = -Math.sin(P.yaw), fwdZ = -Math.cos(P.yaw);
-  const rgtX =  Math.cos(P.yaw), rgtZ = -Math.sin(P.yaw);
+  // WASD = world-space movement (NOT relative to camera)
+  // W = world -Z, S = world +Z, A = world -X, D = world +X
+  let mx=0, mz=0;
+  if(K['w']||K['W']||K['ArrowUp'])    mz-=1;
+  if(K['s']||K['S']||K['ArrowDown'])  mz+=1;
+  if(K['a']||K['A'])                   mx-=1;
+  if(K['d']||K['D'])                   mx+=1;
 
-  let mx=0,mz=0;
-  if(K['w']||K['W']||K['ArrowUp'])   {mx+=fwdX;     mz+=fwdZ;}
-  if(K['s']||K['S']||K['ArrowDown']) {mx-=fwdX*.65; mz-=fwdZ*.65;}
-  if(K['a']||K['A'])                  {mx-=rgtX;     mz-=rgtZ;}
-  if(K['d']||K['D'])                  {mx+=rgtX;     mz+=rgtZ;}
-
-  // Joystick: stick Y = forward/back, stick X = strafe
+  // Joystick: move relative to camera view (expected on mobile)
   if(joy.active&&(Math.abs(joy.dx)>.05||Math.abs(joy.dy)>.05)){
+    const fwdX=-Math.sin(P.yaw), fwdZ=-Math.cos(P.yaw);
+    const rgtX= Math.cos(P.yaw), rgtZ=-Math.sin(P.yaw);
     mx += fwdX*(-joy.dy) + rgtX*joy.dx;
     mz += fwdZ*(-joy.dy) + rgtZ*joy.dx;
   }
 
-  const moving=Math.sqrt(mx*mx+mz*mz)>.001;
-  const sprinting=moving&&(K['Shift']||K['shift']||mSprint)&&stamina>0;
-  if(sprinting) stamina=Math.max(0,stamina-DRAIN*dt);
-  else          stamina=Math.min(1,stamina+REGEN*dt);
+  const len=Math.sqrt(mx*mx+mz*mz);
+  const moving=len>.001;
 
-  const sf=document.getElementById('staminaFill');
-  sf.style.width=(stamina*100)+'%';
-  sf.style.background=stamina<.25?'#ff3333':stamina<.6?'#ffaa00':'#FFE000';
+  // No sprint
+  stamina=Math.min(1,stamina+REGEN*dt);
+  document.getElementById('staminaFill').style.width=(stamina*100)+'%';
+  document.getElementById('staminaFill').style.background='#FFE000';
 
   if(moving){
-    const len=Math.sqrt(mx*mx+mz*mz);mx/=len;mz/=len;
-    let spd=.065;if(sprinting) spd*=1.5;
-    const nx=P.x+mx*spd,nz=P.z+mz*spd;
+    mx/=len; mz/=len;
+    const spd=.048;
+    const nx=P.x+mx*spd, nz=P.z+mz*spd;
     if(!pWall(nx,P.z)) P.x=nx;
     if(!pWall(P.x,nz)) P.z=nz;
-    bobPhase+=dt;bobMoving=true;
+    // Body faces movement direction (smooth lerp)
+    P.bodyYaw = Math.atan2(-mx, -mz); // body rotation = movement angle
+    bobPhase+=dt; bobMoving=true;
     stepT+=dt;
-    if(stepT>(sprinting?.23:.37)){stepT=0;sfxStep(.05);}
-  } else {bobMoving=false;bobPhase*=.9;stepT=0;}
+    if(stepT>.42){ stepT=0; sfxStep(.05); }
+  } else { bobMoving=false; bobPhase*=.9; stepT=0; }
 
   // Check cheese
   cheeseObjects.forEach(cm=>{
@@ -1676,16 +1678,30 @@ let ws=null, myMpId=null, mpIsHost=false, mpConnected=false;
 const mpOthers=new Map(); // id → {mesh, tx, tz, ty, name}
 let mpMoveT=0;
 
+const RAT_NAMES=['Ratão','Rosquinha','Bigodudo','Fofo','Ninja','Pixel','Turbo','Sneaky','Bolota','Pipoca','Zica','Chunk','Weasel','Remy','Splinter'];
+function randomName(){
+  const n=RAT_NAMES[Math.floor(Math.random()*RAT_NAMES.length)];
+  document.getElementById('mpName').value=n;
+}
+
+function mpJoinServer(room){
+  // If no name, pick random
+  const nameEl=document.getElementById('mpName');
+  if(!nameEl.value.trim()) randomName();
+  // Store room and call mpJoin
+  mpJoin(room);
+}
+
 function soloPlay(){
   document.getElementById('oLobby').style.display='none';
   document.getElementById('oStart').style.display='flex';
 }
 
-function mpJoin(){
-  const nameVal=(document.getElementById('mpName').value||'').trim()||'Rato';
-  const roomVal=(document.getElementById('mpRoom').value||'').trim().toUpperCase()||'GERAL';
+function mpJoin(roomOverride){
+  const nameVal=(document.getElementById('mpName').value||'').trim()||RAT_NAMES[Math.floor(Math.random()*RAT_NAMES.length)];
+  const roomVal=roomOverride||(document.getElementById('mpRoom')?.value||'').trim().toUpperCase()||'GERAL';
   const status=document.getElementById('mpStatus');
-  status.textContent='Conectando ao servidor...';
+  status.textContent='Conectando...';
 
   try{
     const proto=location.protocol==='https:'?'wss:':'ws:';
@@ -1696,8 +1712,8 @@ function mpJoin(){
   }
 
   const timeout=setTimeout(()=>{
-    if(!mpConnected){ status.textContent='❌ Servidor não encontrado. Rode: node server.js'; ws.close(); }
-  },4000);
+    if(!mpConnected){ status.textContent='❌ Sem conexão. Tente novamente.'; ws.close(); }
+  },5000);
 
   ws.onopen=()=>{
     mpConnected=true;
@@ -1959,7 +1975,7 @@ function mpTick(dt){
   mpMoveT+=dt;
   if(mpMoveT<0.05) return; // 20 Hz
   mpMoveT=0;
-  ws.send(JSON.stringify({type:'move',x:P.x,z:P.z,yaw:P.yaw}));
+  ws.send(JSON.stringify({type:'move',x:P.x,z:P.z,yaw:P.bodyYaw}));
   if(mpIsHost&&catGroup&&catActive){
     ws.send(JSON.stringify({type:'cat',x:catGroup.position.x,z:catGroup.position.z}));
   }
