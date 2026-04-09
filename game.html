@@ -1446,57 +1446,47 @@ function applyCamera(){
 function movePlayer(dt){
   if(paused||dead||gameWon) return;
 
-  // Q/E or arrow keys rotate camera (look direction only)
-  const ts=2.0*dt;
-  if(K['ArrowLeft']||K['q']||K['Q'])  P.yaw+=ts;
-  if(K['ArrowRight']||K['e']||K['E']) P.yaw-=ts;
+  // Q/E = rotate camera only (mouse drag also rotates camera via mousemove handler)
+  if(K['q']||K['Q']) P.yaw+=2.2*dt;
+  if(K['e']||K['E']) P.yaw-=2.2*dt;
 
-  // WASD = world-space movement (NOT relative to camera)
-  // W = world -Z, S = world +Z, A = world -X, D = world +X
+  // W=norte(-Z)  S=sul(+Z)  A=oeste(-X)  D=leste(+X)  — absolutas, sem câmera
   let mx=0, mz=0;
-  if(K['w']||K['W']||K['ArrowUp'])    mz-=1;
-  if(K['s']||K['S']||K['ArrowDown'])  mz+=1;
-  if(K['a']||K['A'])                   mx-=1;
-  if(K['d']||K['D'])                   mx+=1;
+  if(K['w']||K['W']) mz=-1;
+  if(K['s']||K['S']) mz= 1;
+  if(K['a']||K['A']) mx=-1;
+  if(K['d']||K['D']) mx= 1;
 
-  // Joystick: move relative to camera view (expected on mobile)
+  // Mobile joystick relativo à câmera (mais intuitivo no touch)
   if(joy.active&&(Math.abs(joy.dx)>.05||Math.abs(joy.dy)>.05)){
     const fwdX=-Math.sin(P.yaw), fwdZ=-Math.cos(P.yaw);
     const rgtX= Math.cos(P.yaw), rgtZ=-Math.sin(P.yaw);
-    mx += fwdX*(-joy.dy) + rgtX*joy.dx;
-    mz += fwdZ*(-joy.dy) + rgtZ*joy.dx;
+    mx+=fwdX*(-joy.dy)+rgtX*joy.dx;
+    mz+=fwdZ*(-joy.dy)+rgtZ*joy.dx;
   }
 
   const len=Math.sqrt(mx*mx+mz*mz);
   const moving=len>.001;
-
-  // No sprint
   stamina=Math.min(1,stamina+REGEN*dt);
   document.getElementById('staminaFill').style.width=(stamina*100)+'%';
-  document.getElementById('staminaFill').style.background='#FFE000';
 
   if(moving){
     mx/=len; mz/=len;
+    // Skin do rato vira para direção do movimento
+    P.bodyYaw=Math.atan2(mx,mz);
     const spd=.048;
-    const nx=P.x+mx*spd, nz=P.z+mz*spd;
-    if(!pWall(nx,P.z)) P.x=nx;
-    if(!pWall(P.x,nz)) P.z=nz;
-    // Body faces movement direction (smooth lerp)
-    P.bodyYaw = Math.atan2(-mx, -mz); // body rotation = movement angle
+    if(!pWall(P.x+mx*spd, P.z))       P.x+=mx*spd;
+    if(!pWall(P.x,         P.z+mz*spd)) P.z+=mz*spd;
     bobPhase+=dt; bobMoving=true;
-    stepT+=dt;
-    if(stepT>.42){ stepT=0; sfxStep(.05); }
+    stepT+=dt; if(stepT>.42){ stepT=0; sfxStep(.05); }
   } else { bobMoving=false; bobPhase*=.9; stepT=0; }
 
-  // Check cheese
   cheeseObjects.forEach(cm=>{
     if(cm.userData.collected) return;
     if(Math.hypot(P.x-cm.userData.x,P.z-cm.userData.z)<.65){
-      cm.userData.collected=true;
-      scene.remove(cm);
+      cm.userData.collected=true; scene.remove(cm);
       cheeseCollected++;totalCheeseAll++;
-      sfxCheese();
-      updateCheeseHud();
+      sfxCheese(); updateCheeseHud();
     }
   });
 
