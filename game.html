@@ -687,11 +687,9 @@ function startDrone(){
 
 function updateDrone(dist){
   if(!_drone.running||!_drone.masterG) return;
-  // Linear ramp: 0 at 24+ cells → 1.0 at 0 cells (no curve, no filtering)
-  const vol=Math.max(0, 1 - dist/24);
-  try{
-    _drone.masterG.gain.setTargetAtTime(Math.max(0.0001,vol),AC.currentTime,0.6);
-  }catch(e){}
+  // Pure linear, no EQ, no filter — just volume by distance
+  const vol=Math.max(0, 1-dist/26);
+  try{ _drone.masterG.gain.setTargetAtTime(Math.max(0.0001,vol), AC.currentTime, 0.5); }catch(e){}
 }
 
 function stopDrone(){
@@ -1198,7 +1196,7 @@ function buildCat(startX,startZ){
   catGroup.position.set(bestX,0,bestZ);
   catGroup.visible=true;
   scene.add(catGroup);
-  sfxRoar();
+  
 }
 
 // ═══════════════════════════════════════════
@@ -1223,7 +1221,7 @@ function updateCat(dt){
     catCurrentSpeed = lv.catSpeedMax;
     if(!catBurstWarned){
       catBurstWarned=true;
-      sfxRoar();
+      
       const fl=document.getElementById('flash');
       fl.style.display='block'; fl.style.background='rgba(255,120,0,0.45)';
       setTimeout(()=>{fl.style.background='rgba(255,120,0,0)';setTimeout(()=>fl.style.display='none',300);},180);
@@ -1285,32 +1283,6 @@ function updateCat(dt){
     if(dist<.35) catPath.shift();
   }
 
-  catStepT+=dt;
-  const si=Math.max(.1,.45-catCurrentSpeed*4);
-  if(catStepT>si){
-    catStepT=0;
-    const v=Math.max(0,.14-d2p_now*.012);
-    if(v>.004) sfxStep(v,true);
-  }
-
-  // ── Distance-based horror ambient growl ──
-  // Volume scales: far = 0.03 (barely audible), close = 0.28 (loud)
-  catAmbientTimer-=dt;
-  if(catAmbientTimer<=0){
-    const maxDist=28;
-    const volFar=0.03, volClose=0.28;
-    const t=Math.max(0,1-d2p_now/maxDist);
-    const ambVol=volFar+(volClose-volFar)*t*t; // quadratic — gets loud fast when close
-    // Very close: hiss instead of growl, and more frequently
-    if(d2p_now<3.5){
-      sfxCatHiss(Math.min(0.32, ambVol*1.5));
-      catAmbientTimer=1.2+(Math.random()*0.6);
-    } else {
-      sfxCatGrowl(ambVol);
-      // Far away = rare, close = frequent
-      catAmbientTimer=CAT_AMBIENT_INTERVAL-(t*1.8)+(Math.random()*0.8);
-    }
-  }
 
   // Walk bob
   catGroup.position.y=Math.abs(Math.sin(frameNow*.008))*.2;
@@ -1321,7 +1293,7 @@ function updateCat(dt){
   // Caught
   if(d2p_now<1.3) doKill();
 
-  // Update presence drone volume based on distance
+  // MP3 drone volume = distance (the only cat sound)
   updateDrone(d2p_now);
 
   document.getElementById('catM').textContent=d2p_now.toFixed(1)+'m';
@@ -1478,7 +1450,7 @@ function movePlayer(dt){
     if(!pWall(P.x+mx*spd, P.z))       P.x+=mx*spd;
     if(!pWall(P.x,         P.z+mz*spd)) P.z+=mz*spd;
     bobPhase+=dt; bobMoving=true;
-    stepT+=dt; if(stepT>.42){ stepT=0; sfxStep(.05); }
+    stepT=0; // no footsteps
   } else { bobMoving=false; bobPhase*=.9; stepT=0; }
 
   cheeseObjects.forEach(cm=>{
