@@ -36,6 +36,14 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 #hpLabel{font-size:7px;color:rgba(255,80,80,.65);letter-spacing:2px;}
 #hpBar{width:160px;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;border:1px solid rgba(255,60,60,.3);}
 #hpFill{height:100%;background:#ff3333;border-radius:4px;width:100%;transition:width .15s,background .3s;}
+/* Boost bar */
+#boostWrap{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:100;display:flex;flex-direction:column;align-items:center;gap:3px;transition:opacity .4s;}
+#boostLabel{font-size:7px;color:rgba(255,220,0,.7);letter-spacing:2px;}
+#boostBar{width:160px;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;border:1px solid rgba(255,220,0,.2);}
+#boostFill{height:100%;background:#FFE000;border-radius:3px;width:0%;transition:width .2s,background .3s;}
+/* Boost popup toast */
+#boostToast{position:absolute;top:18%;left:50%;transform:translateX(-50%);pointer-events:none;z-index:200;font-family:'Press Start 2P',monospace;font-size:13px;color:#FFE000;text-shadow:0 0 12px rgba(255,220,0,.8);display:none;animation:toastPop .6s ease-out forwards;}
+@keyframes toastPop{0%{opacity:0;transform:translateX(-50%) scale(.7);}30%{opacity:1;transform:translateX(-50%) scale(1.1);}60%{opacity:1;transform:translateX(-50%) scale(1);}100%{opacity:0;transform:translateX(-50%) scale(.95);}}
 /* Attack button (mobile) */
 #attackBtn{position:absolute;bottom:60px;right:20px;width:68px;height:68px;background:rgba(255,50,50,.18);border:2px solid rgba(255,50,50,.45);border-radius:50%;z-index:120;display:none;align-items:center;justify-content:center;font-size:22px;color:rgba(255,120,120,.85);touch-action:none;}
 #attackBtn.ready{background:rgba(255,50,50,.38);border-color:rgba(255,80,80,.9);}
@@ -124,6 +132,13 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 </div></div>
 
 <div id="hitFlash"></div>
+
+<div id="boostToast">🧀 BOOST!</div>
+
+<div id="boostWrap" style="opacity:0;">
+  <div id="boostLabel">🧀 BOOST</div>
+  <div id="boostBar"><div id="boostFill"></div></div>
+</div>
 
 <div id="hpWrap">
   <div id="hpLabel">❤ VIDA</div>
@@ -324,7 +339,7 @@ const LEVELS = [
   name:'O Laboratório', wc:0x1a3a2a, fc:0x0a1a12, cc:0x051008,
   fog:0x020a06, fn:2.5, ff:12, ambStr:.28, dirStr:.4,
   lights:[{x:6,z:4,c:0x00ff88,i:.9,r:6},{x:14,z:12,c:0x00cc66,i:.8,r:5},{x:22,z:6,c:0x00ff88,i:.9,r:6},{x:8,z:20,c:0x44ffaa,i:.8,r:5},{x:20,z:22,c:0x00cc66,i:.9,r:6},{x:14,z:4,c:0x00ff88,i:.7,r:4}],
-  catSpeedStart:.055, catSpeedMax:.112, visionRange:10,
+  catSpeedStart:.055, catSpeedMax:.090, visionRange:10,
   maze:[
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,2,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
@@ -357,7 +372,7 @@ const LEVELS = [
   name:'O Esgoto', wc:0x2a3a1a, fc:0x0e1808, cc:0x080e04,
   fog:0x040802, fn:2, ff:9, ambStr:.25, dirStr:.35,
   lights:[{x:5,z:6,c:0x88ff00,i:.7,r:5},{x:16,z:5,c:0x66cc00,i:.6,r:4},{x:8,z:16,c:0x88ff00,i:.7,r:5},{x:22,z:14,c:0x66cc00,i:.6,r:4},{x:14,z:22,c:0x88ff00,i:.7,r:5},{x:26,z:8,c:0x66cc00,i:.6,r:4},{x:4,z:22,c:0x44aa00,i:.6,r:4}],
-  catSpeedStart:.062, catSpeedMax:.125, visionRange:13,
+  catSpeedStart:.062, catSpeedMax:.100, visionRange:13,
   maze:[
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,2,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
@@ -392,7 +407,7 @@ const LEVELS = [
   name:'A Biblioteca', wc:0x5a3e20, fc:0x2a1a08, cc:0x1a0e04,
   fog:0x1a0e06, fn:3, ff:13, ambStr:.38, dirStr:.45,
   lights:[{x:6,z:5,c:0xffaa44,i:1,r:6},{x:16,z:8,c:0xff8822,i:.9,r:6},{x:8,z:18,c:0xffaa44,i:1,r:6},{x:22,z:14,c:0xff8822,i:.9,r:6},{x:14,z:24,c:0xffcc66,i:1,r:6},{x:28,z:6,c:0xffaa44,i:.9,r:5},{x:28,z:20,c:0xff8822,i:1,r:6}],
-  catSpeedStart:.070, catSpeedMax:.140, visionRange:16,
+  catSpeedStart:.070, catSpeedMax:.112, visionRange:16,
   maze:[
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,2,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1],
@@ -427,7 +442,7 @@ const LEVELS = [
   name:'O Freezer', wc:0x2a4a6a, fc:0x0a1e30, cc:0xb0d0f0,
   fog:0x0a1828, fn:2, ff:10, ambStr:.5, dirStr:.4,
   lights:[{x:6,z:4,c:0x88ddff,i:1,r:7},{x:16,z:10,c:0xaaeeff,i:.9,r:6},{x:8,z:20,c:0x88ddff,i:1,r:7},{x:24,z:6,c:0xaaeeff,i:.9,r:6},{x:22,z:22,c:0x88ddff,i:1,r:7},{x:14,z:26,c:0xaaeeff,i:.9,r:6},{x:28,z:16,c:0x66ccff,i:1,r:6}],
-  catSpeedStart:.078, catSpeedMax:.156, visionRange:20,
+  catSpeedStart:.078, catSpeedMax:.124, visionRange:20,
   maze:[
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,2,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -464,7 +479,7 @@ const LEVELS = [
   name:'O Pesadelo', wc:0x3a0808, fc:0x180204, cc:0x0a0102,
   fog:0x080002, fn:1.8, ff:8, ambStr:.18, dirStr:.28,
   lights:[{x:5,z:5,c:0xff2200,i:1.2,r:5},{x:17,z:8,c:0xff1100,i:1,r:5},{x:7,z:18,c:0xff3300,i:1.1,r:5},{x:24,z:12,c:0xff2200,i:1,r:5},{x:14,z:24,c:0xff1100,i:1.2,r:5},{x:30,z:5,c:0xff3300,i:1,r:5},{x:30,z:20,c:0xff2200,i:1.1,r:5},{x:10,z:28,c:0xff1100,i:1,r:5}],
-  catSpeedStart:.088, catSpeedMax:.175, visionRange:999,
+  catSpeedStart:.088, catSpeedMax:.138, visionRange:999,
   maze:[
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,2,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -528,7 +543,12 @@ let bobPhase=0, bobMoving=false;
 // ── Health & Combat ──────────────────────────
 const MAX_HP=100;
 let myHp=MAX_HP;
-let attackCooldown=0;      // seconds remaining until can attack again
+let attackCooldown=0;
+
+// ── Cheese boost ─────────────────────────────
+const BOOST_SPEED=0.074;    // boosted speed (vs normal 0.048)
+const BOOST_DURATION=8;     // seconds per cheese
+let boostTimeLeft=0;        // counts down
 const ATTACK_RANGE=1.6;    // how close to hit (in maze units)
 const ATTACK_DAMAGE=34;    // one-third HP per hit
 const ATTACK_COOLDOWN=1.2; // seconds between attacks
@@ -1444,14 +1464,17 @@ function movePlayer(dt){
 
   if(moving){
     mx/=len; mz/=len;
-    // Skin do rato vira para direção do movimento
     P.bodyYaw=Math.atan2(mx,mz);
-    const spd=.048;
-    if(!pWall(P.x+mx*spd, P.z))       P.x+=mx*spd;
-    if(!pWall(P.x,         P.z+mz*spd)) P.z+=mz*spd;
+    if(boostTimeLeft>0){ boostTimeLeft=Math.max(0,boostTimeLeft-dt); updateBoostBar(); }
+    const spd=boostTimeLeft>0 ? BOOST_SPEED : .048;
+    if(!pWall(P.x+mx*spd, P.z))        P.x+=mx*spd;
+    if(!pWall(P.x,          P.z+mz*spd)) P.z+=mz*spd;
     bobPhase+=dt; bobMoving=true;
-    stepT=0; // no footsteps
-  } else { bobMoving=false; bobPhase*=.9; stepT=0; }
+    stepT=0;
+  } else {
+    if(boostTimeLeft>0){ boostTimeLeft=Math.max(0,boostTimeLeft-dt); updateBoostBar(); }
+    bobMoving=false; bobPhase*=.9; stepT=0;
+  }
 
   cheeseObjects.forEach(cm=>{
     if(cm.userData.collected) return;
@@ -1459,6 +1482,7 @@ function movePlayer(dt){
       cm.userData.collected=true; scene.remove(cm);
       cheeseCollected++;totalCheeseAll++;
       sfxCheese(); updateCheeseHud();
+      activateBoost();
     }
   });
 
@@ -1471,6 +1495,32 @@ function pWall(x,z){
   for(const[ox,oz]of[[m,m],[m,-m],[-m,m],[-m,-m]]){const gx=Math.round(x+ox),gz=Math.round(z+oz);if(gz<0||gz>=M.length||gx<0||gx>=M[0].length) return true;if(M[gz][gx]===1) return true;}
   return false;
 }
+function activateBoost(){
+  boostTimeLeft=Math.min(boostTimeLeft+BOOST_DURATION, BOOST_DURATION*3); // stack up to 3
+  updateBoostBar();
+  // Show toast
+  const toast=document.getElementById('boostToast');
+  toast.style.display='block';
+  toast.style.animation='none';
+  void toast.offsetWidth; // reflow to restart animation
+  toast.style.animation='toastPop .6s ease-out forwards';
+  setTimeout(()=>toast.style.display='none', 620);
+}
+
+function updateBoostBar(){
+  const wrap=document.getElementById('boostWrap');
+  const fill=document.getElementById('boostFill');
+  if(boostTimeLeft>0){
+    wrap.style.opacity='1';
+    const pct=Math.min(1, boostTimeLeft/(BOOST_DURATION*3))*100;
+    fill.style.width=pct+'%';
+    fill.style.background=pct>60?'#FFE000':pct>30?'#ffaa00':'#ff8800';
+  } else {
+    wrap.style.opacity='0';
+    fill.style.width='0%';
+  }
+}
+
 function checkGoal(){if(!goalObj) return;if(Math.hypot(P.x-goalObj.x,P.z-goalObj.z)<.75) winLevel();}
 
 // ── HP bar ───────────────────────────────────
@@ -1602,7 +1652,7 @@ function beginLevel(){
   loadLevel(lvIdx);
   mpRebuildMeshes();
   gameWon=false;dead=false;paused=false;
-  myHp=MAX_HP; attackCooldown=0;
+  myHp=MAX_HP; attackCooldown=0; boostTimeLeft=0;
   updateHpBar(); updateAttackBtn();
   camMode='pov';
   document.getElementById('xhair').style.display='block';
