@@ -59,10 +59,10 @@ body{overflow:hidden;background:#000;font-family:'Orbitron',monospace;user-selec
 #flash{position:absolute;inset:0;pointer-events:none;z-index:89;background:rgba(255,0,0,0);display:none;}
 
 /* mobile */
-#joyZone{position:absolute;bottom:20px;left:20px;width:130px;height:130px;z-index:120;touch-action:none;}
-#joyBase{position:absolute;inset:0;background:rgba(255,220,0,.08);border:2px solid rgba(255,220,0,.22);border-radius:50%;}
-#joyThumb{position:absolute;width:52px;height:52px;background:rgba(255,220,0,.32);border:2px solid rgba(255,220,0,.6);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);}
-#lookZone{position:absolute;bottom:20px;right:155px;left:170px;top:0;z-index:110;touch-action:none;}
+#joyZone{position:absolute;top:0;bottom:0;left:0;width:48%;z-index:120;touch-action:none;}
+#joyBase{position:absolute;width:130px;height:130px;background:rgba(255,220,0,.08);border:2px solid rgba(255,220,0,.25);border-radius:50%;display:none;transform:translate(-50%,-50%);pointer-events:none;}
+#joyThumb{position:absolute;width:56px;height:56px;background:rgba(255,220,0,.38);border:2px solid rgba(255,220,0,.75);border-radius:50%;display:none;transform:translate(-50%,-50%);pointer-events:none;}
+#lookZone{position:absolute;top:0;bottom:0;right:0;width:52%;z-index:110;touch-action:none;}
 #sprintBtn{display:none !important;}
 #sprintBtn.active{background:rgba(255,220,0,.32);border-color:rgba(255,220,0,.8);}
 
@@ -979,8 +979,16 @@ document.addEventListener('mouseup',()=>mouseDown=false);
 document.addEventListener('mousemove',e=>{if(!mouseDown||paused||dead||gameWon) return;P.yaw-=(e.clientX-lastMX)*.003;P.pitch=Math.max(-1.25,Math.min(1.25,P.pitch-(e.clientY-lastMY)*.003));lastMX=e.clientX;lastMY=e.clientY;});
 
 const K={};
-document.addEventListener('keydown',e=>{ K[e.key]=true; if(e.key==='v'||e.key==='V') toggleCam(); if(e.key===' '||e.key==='f'||e.key==='F') tryAttack(); });
-document.addEventListener('keyup',  e=>K[e.key]=false);
+const _GAME_KEYS=new Set(['w','a','s','d','W','A','S','D','q','e','Q','E',' ','f','F','v','V']);
+document.addEventListener('keydown',e=>{
+  K[e.key]=true;
+  if(_GAME_KEYS.has(e.key)) e.preventDefault();
+  if(e.key==='v'||e.key==='V') toggleCam();
+  if(e.key===' '||e.key==='f'||e.key==='F') tryAttack();
+});
+document.addEventListener('keyup', e=>{ K[e.key]=false; });
+// Fix: limpar todas as teclas quando a janela perde o foco (evita teclas grudadas)
+window.addEventListener('blur', ()=>{ for(const k in K) K[k]=false; });
 
 function setupTouch(){
   const mob=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)||innerWidth<700;
@@ -994,14 +1002,52 @@ function setupTouch(){
 
   const jz=document.getElementById('joyZone');
   const lz=document.getElementById('lookZone');
+  const jb=document.getElementById('joyBase');
   const jt=document.getElementById('joyThumb');
   const sb=document.getElementById('sprintBtn');
   const JR=65;
 
-  jz.addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches) if(!joy.active){const r=jz.getBoundingClientRect();joy.active=true;joy.id=t.identifier;joy.baseX=r.left+r.width/2;joy.baseY=r.top+r.height/2;joy.dx=0;joy.dy=0;}},{passive:false});
-  jz.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches) if(t.identifier===joy.id){let dx=t.clientX-joy.baseX,dy=t.clientY-joy.baseY;const l=Math.sqrt(dx*dx+dy*dy);if(l>JR){dx=dx/l*JR;dy=dy/l*JR;}joy.dx=dx/JR;joy.dy=dy/JR;jt.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;}},{passive:false});
-  jz.addEventListener('touchend',e=>{e.preventDefault();for(const t of e.changedTouches) if(t.identifier===joy.id){joy.active=false;joy.id=-1;joy.dx=0;joy.dy=0;jt.style.transform='translate(-50%,-50%)';}},{passive:false});
-  jz.addEventListener('touchcancel',e=>{joy.active=false;joy.dx=0;joy.dy=0;jt.style.transform='translate(-50%,-50%)';},{passive:false});
+  jz.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(!joy.active){
+        joy.active=true; joy.id=t.identifier;
+        joy.baseX=t.clientX; joy.baseY=t.clientY;
+        joy.dx=0; joy.dy=0;
+        // Posiciona a base flutuante onde o dedo tocou
+        jb.style.left=t.clientX+'px'; jb.style.top=t.clientY+'px';
+        jb.style.display='block';
+        jt.style.left=t.clientX+'px'; jt.style.top=t.clientY+'px';
+        jt.style.display='block';
+      }
+    }
+  },{passive:false});
+  jz.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier===joy.id){
+        let dx=t.clientX-joy.baseX, dy=t.clientY-joy.baseY;
+        const l=Math.sqrt(dx*dx+dy*dy);
+        if(l>JR){dx=dx/l*JR;dy=dy/l*JR;}
+        joy.dx=dx/JR; joy.dy=dy/JR;
+        jt.style.left=(joy.baseX+dx)+'px';
+        jt.style.top=(joy.baseY+dy)+'px';
+      }
+    }
+  },{passive:false});
+  jz.addEventListener('touchend',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier===joy.id){
+        joy.active=false; joy.id=-1; joy.dx=0; joy.dy=0;
+        jb.style.display='none'; jt.style.display='none';
+      }
+    }
+  },{passive:false});
+  jz.addEventListener('touchcancel',e=>{
+    joy.active=false; joy.id=-1; joy.dx=0; joy.dy=0;
+    jb.style.display='none'; jt.style.display='none';
+  },{passive:false});
 
   lz.addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches) if(!lk.active){lk.active=true;lk.id=t.identifier;lk.lx=t.clientX;lk.ly=t.clientY;}},{passive:false});
   lz.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches) if(t.identifier===lk.id&&!paused&&!dead&&!gameWon){P.yaw-=(t.clientX-lk.lx)*.003;P.pitch=Math.max(-1.25,Math.min(1.25,P.pitch-(t.clientY-lk.ly)*.003));lk.lx=t.clientX;lk.ly=t.clientY;}},{passive:false});
@@ -1405,28 +1451,23 @@ function applyCamera(){
   const sx=shakeStr*(Math.random()-.5)*2, sy=shakeStr*(Math.random()-.5)*2;
 
   if(camMode==='pov'){
+    // First person
     camera.position.set(P.x+sx, EYE+bob+sy, P.z+sx*.5);
+    camera.rotation.order='YXZ';
     camera.rotation.y=P.yaw;
     camera.rotation.x=P.pitch;
     camera.rotation.z=0;
   } else {
-    // Camera sits behind the player: player_pos - forward*dist
-    // forward = (-sin(yaw), -cos(yaw)) → behind = (P.x+sin*dist, P.z+cos*dist)
-    const dist=3.8, height=1.9;
-    const behind_x = P.x + Math.sin(P.yaw)*dist;
-    const behind_z = P.z + Math.cos(P.yaw)*dist;
-    _camPos3.set(behind_x+sx, P.y!==undefined?0:0+height+sy, behind_z);
-    camera.position.lerp(_camPos3, .14);
-    // Look at rat head level
-    camera.lookAt(P.x, 0.55+bob, P.z);
-    camera.rotation.order='YXZ';   // keep order consistent after lookAt
+    // Top-down overhead: camera looks straight down at rat
+    const height=5.5;
+    _camPos3.set(P.x+sx, height+sy, P.z);
+    camera.position.lerp(_camPos3, .15);
+    camera.lookAt(P.x, 0.3, P.z);
+    camera.rotation.order='YXZ';
 
-    // Move rat mesh to player pos + animate
     if(ratMesh){
       ratMesh.visible=true;
       ratMesh.position.set(P.x, bobMoving?Math.abs(Math.sin(bobPhase*6))*.04:0, P.z);
-      // Rat local +Z → world: (sin(θ), cos(θ)). We want it facing (-sin(yaw),-cos(yaw)).
-      // sin(θ)=-sin(yaw) and cos(θ)=-cos(yaw) → θ = yaw + π
       ratMesh.rotation.y = P.bodyYaw;
     }
   }
@@ -1450,11 +1491,12 @@ function movePlayer(dt){
   if(K['d']||K['D']) mx= 1;
 
   // Mobile joystick relativo à câmera (mais intuitivo no touch)
-  if(joy.active&&(Math.abs(joy.dx)>.05||Math.abs(joy.dy)>.05)){
+  if(joy.active&&(Math.abs(joy.dx)>.08||Math.abs(joy.dy)>.08)){
+    const intensity=Math.min(1,Math.sqrt(joy.dx*joy.dx+joy.dy*joy.dy));
     const fwdX=-Math.sin(P.yaw), fwdZ=-Math.cos(P.yaw);
     const rgtX= Math.cos(P.yaw), rgtZ=-Math.sin(P.yaw);
-    mx+=fwdX*(-joy.dy)+rgtX*joy.dx;
-    mz+=fwdZ*(-joy.dy)+rgtZ*joy.dx;
+    mx+=(fwdX*(-joy.dy)+rgtX*joy.dx)*intensity;
+    mz+=(fwdZ*(-joy.dy)+rgtZ*joy.dx)*intensity;
   }
 
   const len=Math.sqrt(mx*mx+mz*mz);
