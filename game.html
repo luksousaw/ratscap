@@ -1483,12 +1483,12 @@ function movePlayer(dt){
   if(K['q']||K['Q']) P.yaw+=2.2*dt;
   if(K['e']||K['E']) P.yaw-=2.2*dt;
 
-  // W=norte(-Z)  S=sul(+Z)  A=oeste(-X)  D=leste(+X)  — absolutas, sem câmera
+  // WASD relativo à direção da câmera (yaw)
   let mx=0, mz=0;
-  if(K['w']||K['W']) mz=-1;
-  if(K['s']||K['S']) mz= 1;
-  if(K['a']||K['A']) mx=-1;
-  if(K['d']||K['D']) mx= 1;
+  if(K['w']||K['W']){ mx+=-Math.sin(P.yaw); mz+=-Math.cos(P.yaw); }
+  if(K['s']||K['S']){ mx+= Math.sin(P.yaw); mz+= Math.cos(P.yaw); }
+  if(K['a']||K['A']){ mx+=-Math.cos(P.yaw); mz+= Math.sin(P.yaw); }
+  if(K['d']||K['D']){ mx+= Math.cos(P.yaw); mz+=-Math.sin(P.yaw); }
 
   // Mobile joystick relativo à câmera (mais intuitivo no touch)
   if(joy.active&&(Math.abs(joy.dx)>.08||Math.abs(joy.dy)>.08)){
@@ -1691,12 +1691,13 @@ function fullReset(){document.getElementById('oWin').style.display='none';lvIdx=
 
 function beginLevel(){
   stopDrone();
+  camMode='pov'; // seta ANTES do loadLevel para buildRat() usar o valor correto
   loadLevel(lvIdx);
   mpRebuildMeshes();
   gameWon=false;dead=false;paused=false;
   myHp=MAX_HP; attackCooldown=0; boostTimeLeft=0;
   updateHpBar(); updateAttackBtn();
-  camMode='pov';
+  if(ratMesh) ratMesh.visible=false; // garante invisível em POV
   document.getElementById('xhair').style.display='block';
   document.getElementById('camBtn').textContent='📷 [V] CÂMERA';
   AC.resume();
@@ -1904,9 +1905,14 @@ function mpHandleMsg(msg, myName, roomCode){
 
   else if(msg.type==='left'){
     const p=mpOthers.get(msg.id);
-    if(p&&p.mesh&&scene) scene.remove(p.mesh);
+    if(p&&p.mesh){ try{ scene.remove(p.mesh); }catch(e){} }
     mpOthers.delete(msg.id);
     mpRefreshPanel();
+    const s=document.createElement('div');
+    s.style.cssText='position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:rgba(255,255,255,.6);font-size:9px;padding:6px 14px;border-radius:6px;z-index:200;pointer-events:none;letter-spacing:1px;';
+    s.textContent='👋 '+(p?.name||'Alguém')+' saiu.';
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),2500);
   }
 }
 
@@ -2017,9 +2023,15 @@ function mpAddOther(p){
 
 // Re-add other player meshes after scene clear
 function mpRebuildMeshes(){
+  const snapshot=[];
   mpOthers.forEach((p,id)=>{
-    if(p.mesh) scene.remove(p.mesh);
-    mpAddOther({id, name:p.name, x:p.tx, z:p.tz});
+    snapshot.push({id, name:p.name, x:p.tx, z:p.tz, dead:p.dead});
+  });
+  mpOthers.clear();
+  snapshot.forEach(p=>{
+    mpAddOther(p);
+    const o=mpOthers.get(p.id);
+    if(o&&p.dead&&o.mesh) o.mesh.visible=false;
   });
 }
 
