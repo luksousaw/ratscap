@@ -1451,19 +1451,21 @@ function applyCamera(){
   const sx=shakeStr*(Math.random()-.5)*2, sy=shakeStr*(Math.random()-.5)*2;
 
   if(camMode==='pov'){
-    // First person
+    // Primeira pessoa
     camera.position.set(P.x+sx, EYE+bob+sy, P.z+sx*.5);
     camera.rotation.order='YXZ';
     camera.rotation.y=P.yaw;
     camera.rotation.x=P.pitch;
     camera.rotation.z=0;
   } else {
-    // Top-down overhead: camera looks straight down at rat
-    const height=5.5;
-    _camPos3.set(P.x+sx, height+sy, P.z);
-    camera.position.lerp(_camPos3, .15);
-    camera.lookAt(P.x, 0.3, P.z);
-    camera.rotation.order='YXZ';
+    // Terceira pessoa: câmera atrás e levemente acima do rato, seguindo o yaw
+    const dist=2.8, height=1.2;
+    const tpx = P.x + Math.sin(P.yaw)*dist + sx;
+    const tpz = P.z + Math.cos(P.yaw)*dist;
+    const tpy = EYE + height + sy;
+    _camPos3.set(tpx, tpy, tpz);
+    camera.position.lerp(_camPos3, 0.18);
+    camera.lookAt(P.x, EYE*0.7, P.z);
 
     if(ratMesh){
       ratMesh.visible=true;
